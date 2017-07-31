@@ -1,0 +1,66 @@
+#!/bin/bash
+# Usage: dp-mv [file]
+# Moves a file or folder from the current dropbox folder to its corresponding
+# location in the "local dropbox folder", and creates a symlink. This is meant
+# for things such as builds of source code that produce a lot of files where
+# tracking them using dropbox has little or no value
+
+program_name="dp_mv"
+
+print-help-message()
+{
+  echo "Usage: ${program_name} [file]"
+  echo ""
+  echo " - file: name of file or folder to move to local storage"
+}
+
+input=$1
+source environment_variables.sh
+
+# Test for input"
+if [ -z "${input}" ]; then
+  echo "Error: No arguments"
+  print-help-message
+  exit 1
+fi
+
+# Test for the standard --help/-h arguments
+if [ "${input}" == "--help" -o "${input}" == "-h" ]; then
+  print-help-message
+  exit 0
+fi
+
+this_dir=$(pwd -P)
+full_dir=${this_dir}/${input}
+
+# Test if the input is any type of file/folder/symlink
+if [ ! -e "${full_dir}" ]; then
+  echo "Error: File doesn't exist"
+  print-help-message
+  exit 1
+fi
+
+# Test if the file/folder/symlink is in the dropbox directory
+if [[ "${full_dir}" != "${DROPBOX_DIR}"* ]]; then
+  echo "Error: File or folder is not in the dropbox dir"
+  print-help-message
+  exit 1
+fi
+
+# Test if the target has already been "archived"
+if [ -L "${full_dir}" ]; then
+  link_path=$(readlink ${input})
+
+  if [[ "${link_path}" == "${LOCAL_DROPBOX_DIR}"* ]]; then
+    echo "File has already been moved to local storage"
+    exit 0
+  fi
+fi
+
+dp_rel_dir=${full_dir#$DROPBOX_DIR"/"}
+dp_local_dir=${LOCAL_DROPBOX_DIR}"/"$(dirname ${dp_rel_dir})
+
+# Move to the local dropbox and create a symlink
+mkdir -p ${dp_local_dir}
+mv ${input} ${dp_local_dir}
+ln -s ${dp_local_dir}"/"$(basename ${input}) $(dirname ${input})/
