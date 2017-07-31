@@ -1,1 +1,1 @@
-SCRIPT_MODULES=("git" "monitor" "utility" "dropbox")
+SCRIPT_MODULES=("git" "monitor" "utility" "dropbox" "hardware")
